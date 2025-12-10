@@ -73,7 +73,8 @@ jobs:
           args: >
             --failOnCVSS 7
             --enableRetired
-            "--disableNodeAudit"
+            --disableNodeAudit
+            --nvdApiDelay 2000
 
       # Add this step to make the report accessible in GitHub UI
       - name: Upload Dependency Check Report Artifact
