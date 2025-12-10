@@ -12,6 +12,8 @@ jobs:
     steps:      
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          clean: false # <-- ADD THIS LINE
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6
@@ -37,6 +39,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          clean: false # <-- ADD THIS LINE
       
       - name: Download SonarQube Report Artifact
         uses: actions/download-artifact@v4
@@ -61,15 +65,17 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          clean: false # <-- ADD THIS LINE
 
       - name: OWASP Dependency Check
         uses: dependency-check/Dependency-Check_Action@main
         with:
           project: "wanderlust"
           path: "."
-          format: "HTML" # Specify the output format
-          out: "reports"  # Specify the output directory
-          args: "--nodeAuditSkip" # Skips the failing Node Audit API call
+          format: "HTML"
+          out: "reports"
+          args: "--nodeAuditSkip" 
 
       # Add this step to make the report accessible in GitHub UI
       - name: Upload Dependency Check Report Artifact
@@ -85,6 +91,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          clean: false # <-- ADD THIS LINE
 
       - name: Trivy File System Scan
         uses: aquasecurity/trivy-action@v0.33.1
@@ -108,9 +116,10 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          clean: false # <-- ADD THIS LINE
 
       - name: Deploy Using Docker Compose
         run: |
           docker compose down
           docker compose up -d --build
-
