@@ -1,1 +1,59 @@
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  devsecops:
+    runs-on: self-hosted   # your EC2 runner
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    # ---------------- SONAR SCAN ----------------
+    - name: SonarQube Scan
+      uses: sonarsource/sonarqube-scan-action@v2
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      with:
+        args: >
+          -Dsonar.projectKey=wanderlust
+          -Dsonar.projectName=wanderlust
+          -Dsonar.sources=.
+
+    # ---------------- QUALITY GATE ----------------
+    - name: Quality Gate
+      uses: sonarsource/sonarqube-quality-gate-action@v2
+      timeout-minutes: 3
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+    # ---------------- OWASP DEPENDENCY CHECK ----------------
+    - name: OWASP Dependency Check
+      uses: dependency-check/Dependency-Check_Action@v4.0.0
+      with:
+        project: "wanderlust"
+        path: "."
+
+    # ---------------- TRIVY INSTALL ----------------
+    - name: Install Trivy
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y wget
+        wget https://aquasecurity.github.io/trivy-repo/deb/trivy_0.50.2_Linux-64bit.deb
+        sudo dpkg -i trivy_0.50.2_Linux-64bit.deb
+
+    # ---------------- TRIVY SCAN ----------------
+    - name: Trivy File System Scan
+      run: trivy fs --format table -o trivy-fs-report.html .
+
+    # ---------------- DEPLOY USING DOCKER COMPOSE ----------------
+    - name: Deploy Using Docker Compose
+      run: |
+        docker compose down
+        docker compose up -d --build
 
