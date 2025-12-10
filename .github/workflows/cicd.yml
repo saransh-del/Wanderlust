@@ -6,7 +6,7 @@ on:
 
 jobs:
 
-  # ... (sonar_scan and quality_gate jobs remain the same) ...
+  # ---------------- 1. SonarQube Scan (Analyzes code and uploads report) ----------------
   sonar_scan:
     runs-on: self-hosted
     steps:
@@ -66,8 +66,8 @@ jobs:
         with:
           project: "wanderlust"
           path: "."
-          format: "HTML" # Specify the output format
-          out: "reports"  # Specify the output directory
+          format: "HTML" # Fix added: specify the output format
+          out: "reports"  # Fix added: specify the output directory
 
       # Add this step to make the report accessible in GitHub UI
       - name: Upload Dependency Check Report Artifact
@@ -75,11 +75,6 @@ jobs:
         with:
           name: dependency-check-report
           path: reports/
-          
-      # WORKAROUND: Force permissions so subsequent jobs can clean up
-      - name: Fix permissions for cleanup
-        run: chmod -R u+rwX .
-
 
   # ---------------- 4. Trivy Scan ----------------
   trivy_scan:
