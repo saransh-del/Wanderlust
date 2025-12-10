@@ -10,6 +10,10 @@ jobs:
   sonar_scan:
     runs-on: self-hosted
     steps:
+      # WORKAROUND: Force permissions for cleanup before checkout runs
+      - name: Fix workspace permissions before checkout
+        run: chmod -R 777 .
+        
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -35,6 +39,10 @@ jobs:
     runs-on: self-hosted
     needs: sonar_scan
     steps:
+      # WORKAROUND: Force permissions for cleanup before checkout runs
+      - name: Fix workspace permissions before checkout
+        run: chmod -R 777 .
+
       - name: Checkout Code
         uses: actions/checkout@v4
       
@@ -58,6 +66,10 @@ jobs:
     runs-on: self-hosted
     needs: quality_gate
     steps:
+      # WORKAROUND: Force permissions for cleanup before checkout runs
+      - name: Fix workspace permissions before checkout
+        run: chmod -R 777 .
+      
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -81,6 +93,10 @@ jobs:
     runs-on: self-hosted
     needs: dependency_check
     steps:
+      # WORKAROUND: Force permissions for cleanup before checkout runs
+      - name: Fix workspace permissions before checkout
+        run: chmod -R 777 .
+
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -104,6 +120,10 @@ jobs:
     runs-on: self-hosted
     needs: trivy_scan
     steps:
+      # WORKAROUND: Force permissions for cleanup before checkout runs
+      - name: Fix workspace permissions before checkout
+        run: chmod -R 777 .
+
       - name: Checkout Code
         uses: actions/checkout@v4
 
