@@ -144,5 +144,5 @@ jobs:
 
       - name: Deploy Using Docker Compose
         run: |
-          docker compose down || true
-          docker compose up -d --build
+          docker-compose down || true
+          docker-compose up -d --build
