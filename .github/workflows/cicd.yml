@@ -83,7 +83,7 @@ jobs:
           name: dependency-check-report
           path: reports/
 
-  # ---------------- 4. Trivy Scan ----------------
+  # ---------------- 4. Trivy Vulnerability Scan ----------------
   trivy_scan:
     runs-on: self-hosted
     needs: dependency_check
@@ -91,22 +91,52 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Trivy File System Scan
-        uses: aquasecurity/trivy-action@v4
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'table'
-          output: 'trivy-fs-report.html'
+      # Install Trivy from official apt repo
+      - name: Install Trivy
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install wget apt-transport-https gnupg lsb-release -y
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update -y
+          sudo apt-get install trivy -y
 
-      # Add this step to make the report accessible in GitHub UI
-      - name: Upload Trivy Report Artifact
+      # ---------------- FS SCAN (Source code scan)
+      - name: Trivy FS Scan
+        run: |
+          trivy fs . \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --format table \
+            --output trivy-fs-report.txt
+
+      - name: Upload Trivy FS Report
         uses: actions/upload-artifact@v4
         with:
           name: trivy-fs-report
-          path: trivy-fs-report.html
+          path: trivy-fs-report.txt
 
-  # ---------------- 5. Deploy 3-Tier Application ----------------
+      # ---------------- IMAGE SCAN (Only if Dockerfile exists)
+      - name: Build Docker Image
+        if: ${{ hashFiles('Dockerfile') != '' }}
+        run: docker build -t trivy-temp-image .
+
+      - name: Trivy Image Scan
+        if: ${{ hashFiles('Dockerfile') != '' }}
+        run: |
+          trivy image trivy-temp-image \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --format table \
+            --output trivy-image-report.txt
+
+      - name: Upload Trivy Image Report
+        if: ${{ hashFiles('Dockerfile') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-image-report
+          path: trivy-image-report.txt
+# ---------------- 5. Deployment ----------------
   deploy:
     runs-on: self-hosted
     needs: trivy_scan
@@ -116,8 +146,5 @@ jobs:
 
       - name: Deploy Using Docker Compose
         run: |
-          docker compose down
+          docker compose down || true
           docker compose up -d --build
-
-          
-          
