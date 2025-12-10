@@ -12,8 +12,6 @@ jobs:
     steps:      
       - name: Checkout Code
         uses: actions/checkout@v4
-        with:
-          clean: false 
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6
@@ -33,15 +31,12 @@ jobs:
           path: .scannerwork/report-task.txt
 
   # ---------------- 2. SonarQube Quality Gate (Checks status using the report) ----------------
-  # This job will run and report 'failed', but it won't block the next stages.
   quality_gate:
     runs-on: self-hosted
     needs: sonar_scan
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-        with:
-          clean: false 
       
       - name: Download SonarQube Report Artifact
         uses: actions/download-artifact@v4
@@ -60,15 +55,12 @@ jobs:
           
 
   # ---------------- 3. OWASP Dependency Check ----------------
-  # Dependency changed from quality_gate to sonar_scan to allow workflow to proceed
   dependency_check:
     runs-on: self-hosted
-    needs: sonar_scan # Changed from 'quality_gate'
+    needs: quality_gate # Dependency restored to sequential order
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-        with:
-          clean: false 
 
       - name: Depcheck
         uses: dependency-check/Dependency-Check_Action@main
@@ -97,8 +89,6 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-        with:
-          clean: false 
 
       - name: Trivy File System Scan
         uses: aquasecurity/trivy-action@v0.33.1
@@ -122,8 +112,6 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-        with:
-          clean: false 
 
       - name: Deploy Using Docker Compose
         run: |
