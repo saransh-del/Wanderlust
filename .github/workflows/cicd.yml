@@ -51,7 +51,7 @@ jobs:
           pollingTimeoutSec: 600
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_HOST_URL: ${{ secrets:SONAR_HOST_URL }}
 
   # ---------------- 3. OWASP Dependency Check ----------------
   dependency_check:
@@ -66,9 +66,9 @@ jobs:
         with:
           project: "wanderlust"
           path: "."
-          format: "HTML" # Fix added: specify the output format
-          out: "reports"  # Fix added: specify the output directory
-          args: "--nodeAuditSkip" # Keeps the fix for the "Invalid payload" API error
+          format: "HTML" # Specify the output format
+          out: "reports"  # Specify the output directory
+          args: "--nodeAuditSkip" # Skips the failing Node Audit API call
 
       # Add this step to make the report accessible in GitHub UI
       - name: Upload Dependency Check Report Artifact
