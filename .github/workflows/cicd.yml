@@ -24,7 +24,6 @@ jobs:
             "-Dsonar.projectName=wanderlust"
             -Dsonar.sources=.
       
-      # Upload the generated report file as an artifact
       - name: Upload SonarQube Report Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -39,12 +38,10 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
       
-      # Download the report artifact uploaded by the previous job
       - name: Download SonarQube Report Artifact
         uses: actions/download-artifact@v4
         with:
           name: sonar-report
-          # Path must match where the action expects the file to be found
           path: .scannerwork/
 
       - name: SonarQube Quality Gate Check
@@ -69,6 +66,15 @@ jobs:
         with:
           project: "wanderlust"
           path: "."
+          format: "HTML" # Fix added: specify the output format
+          out: "reports"  # Fix added: specify the output directory
+
+      # Add this step to make the report accessible in GitHub UI
+      - name: Upload Dependency Check Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: reports/
 
   # ---------------- 4. Trivy Scan ----------------
   trivy_scan:
@@ -85,6 +91,13 @@ jobs:
           scan-ref: '.'
           format: 'table'
           output: 'trivy-fs-report.html'
+
+      # Add this step to make the report accessible in GitHub UI
+      - name: Upload Trivy Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-fs-report
+          path: trivy-fs-report.html
 
   # ---------------- 5. Deploy 3-Tier Application ----------------
   deploy:
