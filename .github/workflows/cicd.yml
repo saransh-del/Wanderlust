@@ -8,7 +8,7 @@ jobs:
 
   # ---------------- 1. SonarQube Scan ----------------
   sonar_scan:
-    runs-on: self-hosted # Changed to self-hosted
+    runs-on: self-hosted
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -17,6 +17,7 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
         with:
           args: >
             -Dsonar.projectKey=wanderlust
@@ -25,7 +26,7 @@ jobs:
 
   # ---------------- 2. SonarQube Quality Gate ----------------
   quality_gate:
-    runs-on: self-hosted # Changed to self-hosted
+    runs-on: self-hosted
     needs: sonar_scan
     steps:
       - name: Checkout Code
@@ -41,7 +42,7 @@ jobs:
 
   # ---------------- 3. OWASP Dependency Check ----------------
   dependency_check:
-    runs-on: self-hosted # Changed to self-hosted
+    runs-on: self-hosted
     needs: quality_gate
     steps:
       - name: Checkout Code
@@ -55,14 +56,14 @@ jobs:
 
   # ---------------- 4. Trivy Scan ----------------
   trivy_scan:
-    runs-on: self-hosted # Changed to self-hosted
+    runs-on: self-hosted
     needs: dependency_check
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Trivy File System Scan
-        uses: aquasecurity/trivy-action@v0.20.0
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           scan-type: 'fs'
           scan-ref: '.'
