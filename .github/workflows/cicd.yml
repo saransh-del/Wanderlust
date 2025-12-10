@@ -19,10 +19,11 @@ jobs:
             -e SONAR_HOST_URL=${{ secrets.SONAR_HOST_URL }} \
             -e SONAR_LOGIN=${{ secrets.SONAR_TOKEN }} \
             -v ${{ github.workspace }}:/usr/src \
+            -w /usr/src \
             sonarsource/sonar-scanner-cli \
             -Dsonar.projectKey=wanderlust \
             -Dsonar.projectName=wanderlust \
-            -Dsonar.sources=/usr/src
+            -Dsonar.sources=.
 
   # ---------------- 2. SonarQube Quality Gate ----------------
   quality_gate:
