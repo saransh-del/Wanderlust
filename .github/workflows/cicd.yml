@@ -5,25 +5,12 @@ on:
     branches: ["main"]
 
 jobs:
-
-  # ---------------- 1. Checkout Code ----------------
-  checkout:
-    runs-on: self-hosted
-    outputs:
-      workspace: ${{ steps.set_workspace.outputs.workspace }}
-    steps:
-      - name: Checkout Code
-        id: set_workspace
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-        run: echo "::set-output name=workspace::${GITHUB_WORKSPACE}"
-
-  # ---------------- 2. SonarQube Scan ----------------
   sonar_scan:
     runs-on: self-hosted
-    needs: checkout
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@v2
         env:
@@ -35,11 +22,13 @@ jobs:
             -Dsonar.projectName=wanderlust
             -Dsonar.sources=.
 
-  # ---------------- 3. SonarQube Quality Gate ----------------
   quality_gate:
     runs-on: self-hosted
     needs: sonar_scan
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
       - name: SonarQube Quality Gate
         uses: sonarsource/sonarqube-quality-gate-action@master
         timeout-minutes: 3
@@ -47,22 +36,26 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
-  # ---------------- 4. OWASP Dependency Check ----------------
   dependency_check:
     runs-on: self-hosted
     needs: quality_gate
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
       - name: OWASP Dependency Check
         uses: dependency-check/Dependency-Check_Action@v3.1.2
         with:
           project: "wanderlust"
           path: "."
 
-  # ---------------- 5. Trivy Scan ----------------
   trivy_scan:
     runs-on: self-hosted
     needs: dependency_check
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
       - name: Install Trivy
         run: |
           sudo apt-get update -y
@@ -73,11 +66,13 @@ jobs:
       - name: Trivy File System Scan
         run: trivy fs --format table -o trivy-fs-report.html .
 
-  # ---------------- 6. Deploy Using Docker Compose ----------------
   deploy:
     runs-on: self-hosted
     needs: trivy_scan
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
       - name: Deploy Using Docker Compose
         run: |
           docker compose down
