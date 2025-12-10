@@ -33,9 +33,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: SonarQube Quality Gate Check
-        uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
+        uses: SonarSource/sonarqube-quality-gate-action@master
         with:
-          pollingTimeoutSec: 300
+          pollingTimeoutSec: 600
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
