@@ -92,7 +92,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Trivy File System Scan
-        uses: aquasecurity/trivy-action@v0.33.1
+        uses: aquasecurity/trivy-action@main
         with:
           scan-type: 'fs'
           scan-ref: '.'
