@@ -8,35 +8,32 @@ jobs:
 
   # ---------------- 1. SonarQube Scan ----------------
   sonar_scan:
-    runs-on: self-hosted
+    runs-on: self-hosted # Changed to self-hosted
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: SonarQube Scan (Docker)
-        run: |
-          docker run --rm \
-            -e SONAR_HOST_URL=${{ secrets.SONAR_HOST_URL }} \
-            -e SONAR_LOGIN=${{ secrets.SONAR_TOKEN }} \
-            -v ${{ github.workspace }}:/usr/src \
-            -w /usr/src \
-            sonarsource/sonar-scanner-cli \
-            -Dsonar.projectKey=wanderlust \
-            -Dsonar.projectName=wanderlust \
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=wanderlust
+            "-Dsonar.projectName=wanderlust"
             -Dsonar.sources=.
 
   # ---------------- 2. SonarQube Quality Gate ----------------
   quality_gate:
-    runs-on: self-hosted
+    runs-on: self-hosted # Changed to self-hosted
     needs: sonar_scan
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: SonarQube Quality Gate
-        uses: sonarsource/sonarqube-quality-gate-action@master
+      - name: SonarQube Quality Gate Check
+        uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
         with:
-          scanMetadataReportFile: .scannerwork/report-task.txt
           pollingTimeoutSec: 300
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -44,35 +41,33 @@ jobs:
 
   # ---------------- 3. OWASP Dependency Check ----------------
   dependency_check:
-    runs-on: self-hosted
+    runs-on: self-hosted # Changed to self-hosted
     needs: quality_gate
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: OWASP Dependency Check
-        uses: dependency-check/Dependency-Check_Action@v3.1.2
+        uses: dependency-check/Dependency-Check_Action@v4.1.0
         with:
           project: "wanderlust"
           path: "."
 
   # ---------------- 4. Trivy Scan ----------------
   trivy_scan:
-    runs-on: self-hosted
+    runs-on: self-hosted # Changed to self-hosted
     needs: dependency_check
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Install Trivy
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y wget
-          wget https://aquasecurity.github.io/trivy-repo/deb/trivy_0.50.2_Linux-64bit.deb
-          sudo dpkg -i trivy_0.50.2_Linux-64bit.deb
+        uses: actions/checkout@v4
 
       - name: Trivy File System Scan
-        run: trivy fs --format table -o trivy-fs-report.html .
+        uses: aquasecurity/trivy-action@v0.20.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          output: 'trivy-fs-report.html'
 
   # ---------------- 5. Deploy 3-Tier Application ----------------
   deploy:
@@ -80,7 +75,7 @@ jobs:
     needs: trivy_scan
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Deploy Using Docker Compose
         run: |
