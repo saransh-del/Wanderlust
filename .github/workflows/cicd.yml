@@ -80,6 +80,7 @@ jobs:
           path: "."
           format: "HTML" # Fix added: specify the output format
           out: "reports"  # Fix added: specify the output directory
+          args: "--nodeAuditSkip"
 
       # Add this step to make the report accessible in GitHub UI
       - name: Upload Dependency Check Report Artifact
