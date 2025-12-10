@@ -9,11 +9,7 @@ jobs:
   # ---------------- 1. SonarQube Scan (Analyzes code and uploads report) ----------------
   sonar_scan:
     runs-on: self-hosted
-    steps:
-      # WORKAROUND: Force permissions for cleanup before checkout runs
-      - name: Fix workspace permissions before checkout
-        run: chmod -R 777 .
-        
+    steps:      
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -39,10 +35,6 @@ jobs:
     runs-on: self-hosted
     needs: sonar_scan
     steps:
-      # WORKAROUND: Force permissions for cleanup before checkout runs
-      - name: Fix workspace permissions before checkout
-        run: chmod -R 777 .
-
       - name: Checkout Code
         uses: actions/checkout@v4
       
@@ -66,10 +58,6 @@ jobs:
     runs-on: self-hosted
     needs: quality_gate
     steps:
-      # WORKAROUND: Force permissions for cleanup before checkout runs
-      - name: Fix workspace permissions before checkout
-        run: chmod -R 777 .
-      
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -80,7 +68,7 @@ jobs:
           path: "."
           format: "HTML" # Fix added: specify the output format
           out: "reports"  # Fix added: specify the output directory
-          args: "--nodeAuditSkip"
+          args: "--nodeAuditSkip" # Keeps the fix for the "Invalid payload" API error
 
       # Add this step to make the report accessible in GitHub UI
       - name: Upload Dependency Check Report Artifact
@@ -94,10 +82,6 @@ jobs:
     runs-on: self-hosted
     needs: dependency_check
     steps:
-      # WORKAROUND: Force permissions for cleanup before checkout runs
-      - name: Fix workspace permissions before checkout
-        run: chmod -R 777 .
-
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -121,10 +105,6 @@ jobs:
     runs-on: self-hosted
     needs: trivy_scan
     steps:
-      # WORKAROUND: Force permissions for cleanup before checkout runs
-      - name: Fix workspace permissions before checkout
-        run: chmod -R 777 .
-
       - name: Checkout Code
         uses: actions/checkout@v4
 
