@@ -5,55 +5,80 @@ on:
     branches: ["main"]
 
 jobs:
-  devsecops:
-    runs-on: self-hosted   # your EC2 runner
 
+  # ---------------- 1. Checkout Code ----------------
+  checkout:
+    runs-on: self-hosted
+    outputs:
+      workspace: ${{ steps.set_workspace.outputs.workspace }}
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v3
+      - name: Checkout Code
+        id: set_workspace
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+        run: echo "::set-output name=workspace::${GITHUB_WORKSPACE}"
 
-    # ---------------- SONAR SCAN ----------------
-    - name: SonarQube Scan
-      uses: sonarsource/sonarqube-scan-action@v2
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-      with:
-        args: >
-          -Dsonar.projectKey=wanderlust
-          -Dsonar.projectName=wanderlust
-          -Dsonar.sources=.
+  # ---------------- 2. SonarQube Scan ----------------
+  sonar_scan:
+    runs-on: self-hosted
+    needs: checkout
+    steps:
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@v2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          args: >
+            -Dsonar.projectKey=wanderlust
+            -Dsonar.projectName=wanderlust
+            -Dsonar.sources=.
 
-    # ---------------- QUALITY GATE ----------------
-    - name: Quality Gate
-      uses: sonarsource/sonarqube-quality-gate-action@v2
-      timeout-minutes: 3
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+  # ---------------- 3. SonarQube Quality Gate ----------------
+  quality_gate:
+    runs-on: self-hosted
+    needs: sonar_scan
+    steps:
+      - name: SonarQube Quality Gate
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        timeout-minutes: 3
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
-    # ---------------- OWASP DEPENDENCY CHECK ----------------
-    - name: OWASP Dependency Check
-      uses: dependency-check/Dependency-Check_Action@v4.0.0
-      with:
-        project: "wanderlust"
-        path: "."
+  # ---------------- 4. OWASP Dependency Check ----------------
+  dependency_check:
+    runs-on: self-hosted
+    needs: quality_gate
+    steps:
+      - name: OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@v3.1.2
+        with:
+          project: "wanderlust"
+          path: "."
 
-    # ---------------- TRIVY INSTALL ----------------
-    - name: Install Trivy
-      run: |
-        sudo apt-get update -y
-        sudo apt-get install -y wget
-        wget https://aquasecurity.github.io/trivy-repo/deb/trivy_0.50.2_Linux-64bit.deb
-        sudo dpkg -i trivy_0.50.2_Linux-64bit.deb
+  # ---------------- 5. Trivy Scan ----------------
+  trivy_scan:
+    runs-on: self-hosted
+    needs: dependency_check
+    steps:
+      - name: Install Trivy
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y wget
+          wget https://aquasecurity.github.io/trivy-repo/deb/trivy_0.50.2_Linux-64bit.deb
+          sudo dpkg -i trivy_0.50.2_Linux-64bit.deb
 
-    # ---------------- TRIVY SCAN ----------------
-    - name: Trivy File System Scan
-      run: trivy fs --format table -o trivy-fs-report.html .
+      - name: Trivy File System Scan
+        run: trivy fs --format table -o trivy-fs-report.html .
 
-    # ---------------- DEPLOY USING DOCKER COMPOSE ----------------
-    - name: Deploy Using Docker Compose
-      run: |
-        docker compose down
-        docker compose up -d --build
-
+  # ---------------- 6. Deploy Using Docker Compose ----------------
+  deploy:
+    runs-on: self-hosted
+    needs: trivy_scan
+    steps:
+      - name: Deploy Using Docker Compose
+        run: |
+          docker compose down
+          docker compose up -d --build
