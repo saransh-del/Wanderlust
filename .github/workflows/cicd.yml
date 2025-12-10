@@ -5,6 +5,8 @@ on:
     branches: ["main"]
 
 jobs:
+
+  # ---------------- 1. SonarQube Scan ----------------
   sonar_scan:
     runs-on: self-hosted
     steps:
@@ -22,6 +24,7 @@ jobs:
             -Dsonar.projectName=wanderlust \
             -Dsonar.sources=/usr/src
 
+  # ---------------- 2. SonarQube Quality Gate ----------------
   quality_gate:
     runs-on: self-hosted
     needs: sonar_scan
@@ -38,6 +41,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
+  # ---------------- 3. OWASP Dependency Check ----------------
   dependency_check:
     runs-on: self-hosted
     needs: quality_gate
@@ -51,6 +55,7 @@ jobs:
           project: "wanderlust"
           path: "."
 
+  # ---------------- 4. Trivy Scan ----------------
   trivy_scan:
     runs-on: self-hosted
     needs: dependency_check
@@ -68,6 +73,7 @@ jobs:
       - name: Trivy File System Scan
         run: trivy fs --format table -o trivy-fs-report.html .
 
+  # ---------------- 5. Deploy 3-Tier Application ----------------
   deploy:
     runs-on: self-hosted
     needs: trivy_scan
