@@ -13,7 +13,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          clean: false 
+          clean: false # Prevents EACCES permission errors on self-hosted runner
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6
@@ -40,7 +40,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          clean: false 
+          clean: false # Prevents EACCES permission errors on self-hosted runner
       
       - name: Download SonarQube Report Artifact
         uses: actions/download-artifact@v4
@@ -53,9 +53,6 @@ jobs:
         with:
           scanMetadataReportFile: .scannerwork/report-task.txt
           pollingTimeoutSec: 600
-          # This input tells the action to ONLY check the status and output it
-          # without exiting the GitHub job with a failure code (exit code 1)
-          # Note: The output still says "failed", but the GitHub job will proceed with a neutral result.
           strictRequirements: false 
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -70,7 +67,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          clean: false 
+          clean: false # Prevents EACCES permission errors on self-hosted runner
 
       - name: Depcheck
         uses: dependency-check/Dependency-Check_Action@main
@@ -100,7 +97,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          clean: false 
+          clean: false # Prevents EACCES permission errors on self-hosted runner
 
       - name: Trivy File System Scan
         uses: aquasecurity/trivy-action@v0.33.1
@@ -125,7 +122,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          clean: false 
+          clean: false # Prevents EACCES permission errors on self-hosted runner
 
       - name: Deploy Using Docker Compose
         run: |
