@@ -1,8 +1,5 @@
 name: DevSecOps Pipeline
 
-on:
-  push:
-    branches: ["main"]
 
 jobs:
 
