@@ -1,0 +1,56 @@
+name: CN-Web Destroy Infra (OIDC)
+
+on:
+  push:
+    branches:
+      - feature/saransh
+
+# on:
+#   workflow_dispatch:  #manual trigger
+
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ------------------------------------
+      # 1. Checkout repository
+      # ------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ------------------------------------
+      # 2. Configure AWS via OIDC
+      # ------------------------------------
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::323001028681:role/saransh-oidc
+          aws-region: us-east-1
+
+      # ------------------------------------
+      # 3. Setup Terraform
+      # ------------------------------------
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14.3
+
+      # ------------------------------------
+      # 4. Terraform Init
+      # ------------------------------------
+      - name: Terraform Init
+        working-directory: infra
+        run: terraform init
+
+      # ------------------------------------
+      # 5. Terraform Destroy
+      # ------------------------------------
+      - name: Terraform Destroy
+        working-directory: infra
+        run: terraform destroy -auto-approve
