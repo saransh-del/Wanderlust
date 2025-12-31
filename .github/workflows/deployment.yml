@@ -3,6 +3,8 @@ name: CN-Web Deployment Pipeline (Infra + ECR + Deploy + Trivy)
 # on:
 #   workflow_dispatch:   # manual trigger
 
+# hello
+
 on:
   push:
     branches:
