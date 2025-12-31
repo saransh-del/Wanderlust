@@ -1,11 +1,12 @@
 name: CN-Web Deployment Pipeline (Infra + ECR + Deploy + Trivy)
 
 # on:
-#   push:
-#     branches:
-#       - feature/saransh
+#   workflow_dispatch:   # manual trigger
+
 on:
-  workflow_dispatch:  # manual trigger
+  push:
+    branches:
+      - feature/saransh 
 
 permissions:
   id-token: write
@@ -29,14 +30,17 @@ jobs:
       ec2_ip: ${{ steps.ip.outputs.EC2_IP }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::323001028681:role/saransh-oidc
           aws-region: ${{ env.AWS_REGION }}
 
-      - uses: hashicorp/setup-terraform@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.14.3
 
@@ -63,17 +67,24 @@ jobs:
     needs: infra
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::323001028681:role/saransh-oidc
           aws-region: ${{ env.AWS_REGION }}
 
-      - uses: aws-actions/amazon-ecr-login@v2
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build Docker Image
-        run: docker build -t $ECR_REPO:${IMAGE_TAG} .
+      - name: Build Docker Image (Frontend)
+        run: |
+          docker build \
+            -t $ECR_REPO:${IMAGE_TAG} \
+            -f frontend/Dockerfile \
+            frontend
 
       - name: Trivy Image Scan
         run: |
@@ -88,12 +99,13 @@ jobs:
             --output /reports/trivy-image-report.json \
             $ECR_REPO:${IMAGE_TAG}
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload Trivy Report Artifact
+        uses: actions/upload-artifact@v4
         with:
           name: trivy-image-report
           path: trivy-reports/trivy-image-report.json
 
-      - name: Tag & Push Image
+      - name: Tag & Push Image to ECR
         run: |
           docker tag $ECR_REPO:${IMAGE_TAG} \
             $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:${IMAGE_TAG}
@@ -119,24 +131,19 @@ jobs:
 
       - name: Deploy Docker Container on EC2
         run: |
-          ssh -i ~/.ssh/id_rsa ubuntu@${{ needs.infra.outputs.ec2_ip }} << 'EOF'
-            sudo apt-get update -y
-            sudo apt-get install -y docker.io amazon-ecr-credential-helper
+          ssh -i ~/.ssh/id_rsa ubuntu@${{ needs.infra.outputs.ec2_ip }} << EOF
+          sudo apt-get update -y
+          sudo apt-get install -y docker.io amazon-ecr-credential-helper
 
-            mkdir -p ~/.docker
-            cat << 'CONFIG' > ~/.docker/config.json
-            {
-              "credsStore": "ecr-login"
-            }
-            CONFIG
+          mkdir -p ~/.docker
+          printf '{\n  "credsStore": "ecr-login"\n}\n' > ~/.docker/config.json
 
-            sudo docker pull ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}
+          sudo docker pull ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}
 
-            sudo docker rm -f cn-web-container || true
+          sudo docker rm -f cn-web-container || true
 
-            sudo docker run -d \
-              --name cn-web-container \
-              -p 4173:4173 \
-              ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}
+          sudo docker run -d \
+          --name cn-web-container \
+          -p 4173:4173 \
+          ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}
           EOF
-
