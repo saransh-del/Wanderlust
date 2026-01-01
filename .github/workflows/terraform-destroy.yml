@@ -3,7 +3,7 @@ name: CN-Web Destroy Infra (OIDC)
 on:
   push:
     branches:
-      - feature/saransh
+      - main
 
 # on:
 #   workflow_dispatch:  #manual trigger
