@@ -137,15 +137,16 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y docker.io amazon-ecr-credential-helper
 
-          mkdir -p ~/.docker
-          printf '{\n  "credsStore": "ecr-login"\n}\n' > ~/.docker/config.json
+          sudo mkdir -p /root/.docker
+          sudo printf '{\n  "credsStore": "ecr-login"\n}\n' > /root/.docker/config.json
 
           sudo docker pull ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}
 
           sudo docker rm -f cn-web-container || true
 
           sudo docker run -d \
-          --name cn-web-container \
-          -p 4173:4173 \
-          ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}
+            --name cn-web-container \
+            -p 4173:4173 \
+            ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}
           EOF
+          
