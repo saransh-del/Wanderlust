@@ -119,7 +119,7 @@ jobs:
   build_push:
     name: Build, Scan & Push Image to ECR
     runs-on: ubuntu-latest
-    needs: sonarqube_scan
+    needs: frontend_unit_tests_sonar
 
     steps:
       - uses: actions/checkout@v4
