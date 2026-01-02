@@ -74,8 +74,16 @@ jobs:
             node:18 \
             sh -c "
               npm install &&
-              npm run test:ci || true
+              npm install --save-dev jest-junit &&
+              mkdir -p coverage reports &&
+              export JEST_JUNIT_OUTPUT=./reports/junit.xml &&
+              npm run test -- \
+                --coverage \
+                --coverageDirectory=./coverage \
+                --reporters=default \
+                --reporters=jest-junit
             "
+
 
       - name: Verify coverage output
         run: |
