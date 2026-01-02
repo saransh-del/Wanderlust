@@ -52,7 +52,6 @@ jobs:
 # ===============================
 # STAGE 1.5: SONARQUBE + COVERAGE
 # ===============================
-jobs:
   frontend_unit_tests_sonar:
     name: Frontend Unit Tests + Coverage + SonarQube
     runs-on: ubuntu-latest
