@@ -66,8 +66,8 @@ resource "aws_security_group" "cn_web_sg" {
 
   ingress {
     description = "App Port"
-    from_port   = 4173
-    to_port     = 4173
+    from_port   = 5173
+    to_port     = 5173
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
