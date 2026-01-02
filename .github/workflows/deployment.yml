@@ -1,14 +1,9 @@
-name: CN-Web Deployment Pipeline (Infra + ECR + Deploy + Trivy)
-
-# on:
-#   workflow_dispatch:   # manual trigger
-
-# hello
+name: CN-Web Deployment Pipeline (Infra + ECR + Deploy + Trivy + Sonar)
 
 on:
   push:
     branches:
-      - main 
+      - main
 
 permissions:
   id-token: write
@@ -32,47 +27,50 @@ jobs:
       ec2_ip: ${{ steps.ip.outputs.EC2_IP }}
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::323001028681:role/saransh-oidc
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.14.3
 
-      - name: Terraform Init
+      - run: terraform init
         working-directory: infra
-        run: terraform init
 
-      - name: Terraform Apply
+      - run: terraform apply -auto-approve
         working-directory: infra
-        run: terraform apply -auto-approve
 
-      - name: Export EC2 Public IP
-        id: ip
+      - id: ip
         working-directory: infra
         run: |
           echo "EC2_IP=$(terraform output -raw ec2_public_ip)" >> $GITHUB_OUTPUT
 
 # ===============================
-# STAGE 1.5: SONARQUBE SCAN
+# STAGE 1.5: SONARQUBE + COVERAGE
 # ===============================
   sonarqube_scan:
-    name: SonarQube Code Quality Scan
+    name: SonarQube Scan with Coverage
     runs-on: ubuntu-latest
     needs: infra
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Run SonarQube Scan
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm install
+
+      - name: Run tests with coverage
+        run: |
+          cd frontend
+          npm test -- --coverage
+
+      - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -83,9 +81,10 @@ jobs:
             -Dsonar.projectName=CN-Web
             -Dsonar.sources=frontend
             -Dsonar.exclusions=**/node_modules/**,**/dist/**
+            -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info
 
 # ===============================
-# STAGE 2: BUILD + SCAN + PUSH
+# STAGE 2: BUILD + TRIVY + PUSH
 # ===============================
   build_push:
     name: Build, Scan & Push Image to ECR
@@ -93,19 +92,16 @@ jobs:
     needs: sonarqube_scan
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::323001028681:role/saransh-oidc
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
+      - uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build Docker Image (Frontend)
+      - name: Build Docker Image
         run: |
           docker build \
             -t $ECR_REPO:${IMAGE_TAG} \
@@ -125,13 +121,17 @@ jobs:
             --output /reports/trivy-image-report.json \
             $ECR_REPO:${IMAGE_TAG}
 
-      - name: Upload Trivy Report Artifact
-        uses: actions/upload-artifact@v4
+      - name: Verify Trivy Report
+        run: |
+          ls -l trivy-reports
+          cat trivy-reports/trivy-image-report.json | head -20
+
+      - uses: actions/upload-artifact@v4
         with:
           name: trivy-image-report
           path: trivy-reports/trivy-image-report.json
 
-      - name: Tag & Push Image to ECR
+      - name: Tag & Push Image
         run: |
           docker tag $ECR_REPO:${IMAGE_TAG} \
             $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:${IMAGE_TAG}
