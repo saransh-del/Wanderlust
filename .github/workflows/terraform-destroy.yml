@@ -1,12 +1,12 @@
 name: CN-Web Destroy Infra (OIDC)
 
-on:
-  push:
-    branches:
-      - main
-
 # on:
-#   workflow_dispatch:  #manual trigger
+#   push:
+#     branches:
+#       - main
+
+on:
+  workflow_dispatch:  #manual trigger
 
 
 permissions:
